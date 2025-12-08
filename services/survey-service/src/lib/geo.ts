@@ -7,7 +7,6 @@
 
 import path from 'path';
 import maxmind from 'maxmind';
-import fetch from 'node-fetch';
 import { fetchIpRiskIpqs, computeRiskScore, IpqsRisk } from './vpn-detection';
 
 // Go up one level from services/survey-service to the project root
@@ -257,6 +256,7 @@ export async function lookupIp(ip: string): Promise<GeoResult | null> {
 
   // Fallback to public API (ip-api.com)
   try {
+    const { default: fetch } = await import('node-fetch');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
     

@@ -5,8 +5,6 @@
  * Provides risk scoring and blocking capabilities for survey respondents
  */
 
-import fetch from 'node-fetch';
-
 export interface IpqsRisk {
   ip: string;
   vpn: boolean;
@@ -53,6 +51,7 @@ export async function fetchIpRiskIpqs(ip: string): Promise<IpqsRisk | null> {
   console.log('🔧 [VPN] Allow public IPs:', allowPublic);
 
   try {
+    const { default: fetch } = await import('node-fetch');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     
