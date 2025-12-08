@@ -10,14 +10,14 @@ module.exports = {
           NODE_ENV: 'production',
           PORT: 3000,
           // Frontend will use .env file for API URLs
-          NEXT_PUBLIC_SURVEY_SERVICE_URL: 'http://72.61.237.84/api/survey',
-          NEXT_PUBLIC_AUTH_API: 'http://72.61.237.84/api/auth'
+          NEXT_PUBLIC_SURVEY_SERVICE_URL: 'https://survey.research-connectllc.com//api/survey',
+          NEXT_PUBLIC_AUTH_API: 'https://survey.research-connectllc.com//api/auth'
         },
         env_production: {
           NODE_ENV: 'production',
           PORT: 3000,
-          NEXT_PUBLIC_SURVEY_SERVICE_URL: 'http://72.61.237.84/api/survey',
-          NEXT_PUBLIC_AUTH_API: 'http://72.61.237.84/api/auth'
+          NEXT_PUBLIC_SURVEY_SERVICE_URL: 'https://survey.research-connectllc.com//api/survey',
+          NEXT_PUBLIC_AUTH_API: 'https://survey.research-connectllc.com//api/auth'
         },
         // Next.js specific settings
         instances: 1,
@@ -51,7 +51,7 @@ module.exports = {
           JWT_EXPIRES_IN: '7d',
           RATE_LIMIT_WINDOW_MS: '900000',
           RATE_LIMIT_MAX_REQUESTS: '100',
-          CORS_ORIGIN: 'http://72.61.237.84',
+          CORS_ORIGIN: 'https://survey.research-connectllc.com/',
           },
         env_production: {
           NODE_ENV: 'production',
@@ -60,7 +60,7 @@ module.exports = {
           JWT_EXPIRES_IN: '7d',
           RATE_LIMIT_WINDOW_MS: '900000',
           RATE_LIMIT_MAX_REQUESTS: '100',
-          CORS_ORIGIN: 'http://72.61.237.84',
+          CORS_ORIGIN: 'https://survey.research-connectllc.com/',
           },
         // Service specific settings
         instances: 1,
@@ -92,7 +92,7 @@ module.exports = {
           NODE_ENV: 'production',
           PORT: 3002,
           // Survey service environment variables
-          PUBLIC_BASE_URL: 'http://72.61.237.84',
+          PUBLIC_BASE_URL: 'https://survey.research-connectllc.com/',
           KAFKA_BROKERS: 'localhost:9092', // Use localhost for internal Docker network
           KAFKA_CLIENT_ID: 'survey-service',
           KAFKA_GROUP_ID: 'survey-service-group',
@@ -114,7 +114,7 @@ module.exports = {
           OUTBOX_RETRY_BACKOFF_MS: '5000',
           RATE_LIMIT_WINDOW_MS: '900000',
           RATE_LIMIT_MAX_REQUESTS: '1000',
-          CORS_ORIGIN: 'http://72.61.237.84',
+          CORS_ORIGIN: 'https://survey.research-connectllc.com/',
           AUTH_SERVICE_URL: 'http://localhost:3001', // Internal service communication
           ENABLE_METRICS: 'true',
           METRICS_PORT: '9090',
@@ -126,7 +126,7 @@ module.exports = {
         env_production: {
           NODE_ENV: 'production',
           PORT: 3002,
-          PUBLIC_BASE_URL: 'http://72.61.237.84',
+          PUBLIC_BASE_URL: 'https://survey.research-connectllc.com/',
           DATABASE_URL: 'postgresql://rc_survey_user:rc_survey_password@localhost:5432/rc_survey_db',
           KAFKA_BROKERS: 'localhost:9092',
           KAFKA_CLIENT_ID: 'survey-service',
@@ -149,8 +149,8 @@ module.exports = {
           OUTBOX_RETRY_BACKOFF_MS: '5000',
           RATE_LIMIT_WINDOW_MS: '900000',
           RATE_LIMIT_MAX_REQUESTS: '1000',
-          CORS_ORIGIN: 'http://72.61.237.84',
-          AUTH_SERVICE_URL: 'http://72.61.237.84:3001',
+          CORS_ORIGIN: 'https://survey.research-connectllc.com/',
+          AUTH_SERVICE_URL: 'https://survey.research-connectllc.com/:3001',
           ENABLE_METRICS: 'true',
           METRICS_PORT: '9090',
           LOG_LEVEL: 'info',
