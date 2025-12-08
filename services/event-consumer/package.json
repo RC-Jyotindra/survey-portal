@@ -1,0 +1,25 @@
+{
+  "name": "@rc-survey/event-consumer",
+  "version": "1.0.0",
+  "description": "Event consumer service for RC Survey platform",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@repo/event-bus": "0.0.1",
+    "@repo/database": "0.0.1",
+    "dotenv": "^16.3.1",
+    "ioredis": "^5.3.2",
+    "kafkajs": "^2.2.4",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "tsx": "^4.6.2",
+    "typescript": "5.8.3"
+  }
+}

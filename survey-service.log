@@ -1,0 +1,89 @@
+
+D:\Projects\rc-survey-microservice\services\survey-service>yarn dev
+yarn run v1.22.22
+warning package.json: No license field
+$ tsx watch src/index.ts
+info: 🔧 Kafka Config - Brokers: 192.168.1.250:9092, ClientId: survey-service {"service":"event-bus","timestamp":"2025-09-12T12:42:49.246Z"}
+{"level":"WARN","timestamp":"2025-09-12T12:42:49.262Z","logger":"kafkajs","message":"KafkaJS v2.0.0 switched default partitioner. To retain the same partitioning behavior as in previous versions, create the producer with the option \"createPartitioner: Partitioners.LegacyPartitioner\". See the migration guide at https://kafka.js.org/docs/migration-guide-v2.0.0#producer-new-default-partitioner for details. Silence this warning by setting the environment variable \"KAFKAJS_NO_PARTITIONER_WARNING=1\""}
+info: Kafka producer connected successfully {"service":"event-bus","timestamp":"2025-09-12T12:42:49.398Z"}
+info: Redis client connected {"service":"event-bus","timestamp":"2025-09-12T12:42:49.424Z"}
+info: Redis client ready {"service":"event-bus","timestamp":"2025-09-12T12:42:49.433Z"}
+info: Starting outbox relay {"config":{"batchSize":100,"maxAttempts":5,"pollIntervalMs":1000,"retryBackoffMs":5000},"service":"event-bus","timestamp":"2025-09-12T12:42:49.436Z"}
+✅ Event bus service initialized successfully
+🚀 Survey service running on port 3002
+📊 Environment: development
+🔗 Health check: http://localhost:3002/health
+📡 Event bus: Kafka + Redis integrated
+🚀 [SESSION_STARTED] {
+  sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2',
+  surveyId: '470ef48b-6725-4225-8029-ec8f954bb969',
+  tenantId: '96fb4499-2ba5-47fc-b054-d48078961a4b'
+}
+📊 [SESSION_ANSWERS] { sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2', answersSize:0 }
+💾 [ANSWERS_UPSERTED] {
+  sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2',
+  pageId: '3416a5d4-f05e-4b86-885f-dce207c85bd9',
+  answerCount: 3,
+  quotaReserved: true,
+  bucketId: '14f98303-10dd-451c-b4d8-a9ddafc9ddb8'
+}
+📊 [SESSION_ANSWERS] { sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2', answersSize:3 }
+💾 [ANSWERS_UPSERTED] {
+  sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2',
+  pageId: '7e6e4027-c961-4582-bbd0-32fa50f4516e',
+  answerCount: 3,
+  quotaReserved: true,
+  bucketId: '635c10e0-a30c-4f3c-9849-795e1c74be81'
+}
+📊 [SESSION_ANSWERS] { sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2', answersSize:6 }
+💾 [ANSWERS_UPSERTED] {
+  sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2',
+  pageId: 'cce93ec9-f88d-4711-8060-bb667ccafdc2',
+  answerCount: 1,
+  quotaReserved: true,
+  bucketId: '9386f37e-f650-4707-ac78-ed37e62399e6'
+}
+📊 [SESSION_ANSWERS] { sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2', answersSize:7 }
+💾 [ANSWERS_UPSERTED] {
+  sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2',
+  pageId: '8532e9fd-2991-4ae0-be7a-382295b8e4ce',
+  answerCount: 4,
+  quotaReserved: true,
+  bucketId: '29c916b8-a836-4071-b197-e4c50454cdc7'
+}
+📊 [SESSION_ANSWERS] { sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2', answersSize: 11 }
+💾 [ANSWERS_UPSERTED] {
+  sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2',
+  pageId: '5c0cbcc1-c542-4d53-9fc2-1c80f36f2497',
+  answerCount: 2,
+  quotaReserved: true,
+  bucketId: '98e005cc-076e-4ee4-ad7c-557f693a3cd3'
+}
+📊 [SESSION_ANSWERS] { sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2', answersSize:13 }
+💾 [ANSWERS_UPSERTED] {
+  sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2',
+  pageId: '8ac7ddd5-f72c-4ebf-aea8-38a59a2714e6',
+  answerCount: 1,
+  quotaReserved: true,
+  bucketId: '9a6319fa-d719-4fc7-bfe5-497b023e306b'
+}
+📊 [SESSION_ANSWERS] { sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2', answersSize:14 }
+💾 [ANSWERS_UPSERTED] {
+  sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2',
+  pageId: '581241ac-b38f-494b-8328-aa47f9fe1b0e',
+  answerCount: 1,
+  quotaReserved: false
+}
+📊 [SESSION_ANSWERS] { sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2', answersSize:15 }
+💾 [ANSWERS_UPSERTED] {
+  sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2',
+  pageId: 'c1c5b058-1513-4d85-b99b-9fe681147d33',
+  answerCount: 2,
+  quotaReserved: true,
+  bucketId: '75694c74-bec0-4b66-bf13-294ce5dab153'
+}
+✅ [SESSION_COMPLETED] {
+  sessionId: '5814067a-2bbd-4cbd-96d0-d31ed9d56ba2',
+  surveyId: '470ef48b-6725-4225-8029-ec8f954bb969',
+  tenantId: '96fb4499-2ba5-47fc-b054-d48078961a4b'
+}

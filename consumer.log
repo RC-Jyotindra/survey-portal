@@ -1,0 +1,68 @@
+
+D:\Projects\rc-survey-microservice\infra\docker>docker-compose logs -f event-consumer
+event-consumer  | 
+event-consumer  | > @rc-survey/event-consumer@1.0.0 start
+event-consumer  | > node dist/index.js
+event-consumer  | 
+event-consumer  | info: 🔧 Environment Variables: {"KAFKA_BROKERS":"192.168.1.250:9092","KAFKA_CLIENT_ID":"event-consumer","REDIS_HOST":"redis","REDIS_PORT":"6379","service":"event-bus","timestamp":"2025-09-12T12:42:34.731Z"}
+event-consumer  | info: 🚀 Starting all event consumers... {"service":"event-bus","timestamp":"2025-09-12T12:42:34.736Z"}
+event-consumer  | info: ⏳ Waiting for Kafka to be ready... {"service":"event-bus","timestamp":"2025-09-12T12:42:34.736Z"}
+event-consumer  | [CONSUMER] Quota Consumer started
+event-consumer  | info: 🔧 Kafka Config - Brokers: 192.168.1.250:9092, ClientId: event-consumer {"service":"event-bus","timestamp":"2025-09-12T12:42:44.739Z"}
+event-consumer  | [CONSUMER] Session Consumer started
+event-consumer  | info: 🔧 Kafka Config - Brokers: 192.168.1.250:9092, ClientId: event-consumer {"service":"event-bus","timestamp":"2025-09-12T12:42:44.745Z"}
+event-consumer  | [CONSUMER] Answer Consumer started
+event-consumer  | info: 🔧 Kafka Config - Brokers: 192.168.1.250:9092, ClientId: event-consumer {"service":"event-bus","timestamp":"2025-09-12T12:42:44.746Z"}
+event-consumer  | info: Redis client connected {"service":"event-bus","timestamp":"2025-09-12T12:42:44.778Z"}
+event-consumer  | info: Redis client connected {"service":"event-bus","timestamp":"2025-09-12T12:42:44.780Z"}
+event-consumer  | info: Redis client connected {"service":"event-bus","timestamp":"2025-09-12T12:42:44.781Z"}
+event-consumer  | info: Redis client ready {"service":"event-bus","timestamp":"2025-09-12T12:42:44.784Z"}
+event-consumer  | info: ✅ Quota Consumer connected to Redis {"service":"event-bus","timestamp":"2025-09-12T12:42:44.785Z"}
+event-consumer  | info: Redis client ready {"service":"event-bus","timestamp":"2025-09-12T12:42:44.797Z"}
+event-consumer  | info: ✅ Session Consumer connected to Redis {"service":"event-bus","timestamp":"2025-09-12T12:42:44.798Z"}
+event-consumer  | info: Redis client ready {"service":"event-bus","timestamp":"2025-09-12T12:42:44.805Z"}
+event-consumer  | info: ✅ Answer Consumer connected to Redis {"service":"event-bus","timestamp":"2025-09-12T12:42:44.806Z"}
+event-consumer  | info: Kafka consumer connected with group ID: session-consumer-group {"service":"event-bus","timestamp":"2025-09-12T12:42:44.830Z"}
+event-consumer  | info: Kafka consumer connected with group ID: quota-consumer-group {"service":"event-bus","timestamp":"2025-09-12T12:42:44.839Z"}
+event-consumer  | info: Kafka consumer connected with group ID: answer-consumer-group {"service":"event-bus","timestamp":"2025-09-12T12:42:44.843Z"}
+event-consumer  | {"level":"INFO","timestamp":"2025-09-12T12:42:44.852Z","logger":"kafkajs","message":"[Consumer] Starting","groupId":"quota-consumer-group"}
+event-consumer  | {"level":"INFO","timestamp":"2025-09-12T12:42:44.867Z","logger":"kafkajs","message":"[Consumer] Starting","groupId":"session-consumer-group"}
+event-consumer  | {"level":"INFO","timestamp":"2025-09-12T12:42:44.868Z","logger":"kafkajs","message":"[Consumer] Starting","groupId":"answer-consumer-group"}
+event-consumer  | {"level":"INFO","timestamp":"2025-09-12T12:42:48.181Z","logger":"kafkajs","message":"[ConsumerGroup] Consumer has joined the group","groupId":"session-consumer-group","memberId":"event-consumer-0609166c-c053-4201-a2eb-d16c4ef4797a","leaderId":"event-consumer-0609166c-c053-4201-a2eb-d16c4ef4797a","isLeader":true,"memberAssignment":{"runtime.sessions":[0,1,2]},"groupProtocol":"RoundRobinAssigner","duration":3314}
+event-consumer  | {"level":"INFO","timestamp":"2025-09-12T12:42:48.215Z","logger":"kafkajs","message":"[ConsumerGroup] Consumer has joined the group","groupId":"answer-consumer-group","memberId":"event-consumer-06731d98-c4ea-4811-9557-d165f9636d52","leaderId":"event-consumer-06731d98-c4ea-4811-9557-d165f9636d52","isLeader":true,"memberAssignment":{"runtime.answers":[0,1,2]},"groupProtocol":"RoundRobinAssigner","duration":3341}
+event-consumer  | {"level":"INFO","timestamp":"2025-09-12T12:42:48.222Z","logger":"kafkajs","message":"[ConsumerGroup] Consumer has joined the group","groupId":"quota-consumer-group","memberId":"event-consumer-0131b817-5628-4e5d-a008-708a2c722ee7","leaderId":"event-consumer-0131b817-5628-4e5d-a008-708a2c722ee7","isLeader":true,"memberAssignment":{"runtime.quota":[0,1,2]},"groupProtocol":"RoundRobinAssigner","duration":3366}   
+event-consumer  | info: ✅ All consumers started successfully {"service":"event-bus","timestamp":"2025-09-12T12:42:48.223Z"}
+event-consumer  | info: 📊 Processing session event: session.started {"service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","tenantId":"96fb4499-2ba5-47fc-b054-d48078961a4b","timestamp":"2025-09-12T12:44:01.100Z"}
+event-consumer  | info: ✅ Session started: 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 for survey 470ef48b-6725-4225-8029-ec8f954bb969 {"service":"event-bus","timestamp":"2025-09-12T12:44:01.158Z"}
+event-consumer  | info: 📊 Processing answer event: answer.upserted {"answerCount":3,"pageId":"3416a5d4-f05e-4b86-885f-dce207c85bd9","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:44:17.069Z"}
+event-consumer  | info: 📊 Processing quota event: quota.reserved {"bucketId":"14f98303-10dd-451c-b4d8-a9ddafc9ddb8","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:44:17.091Z"}
+event-consumer  | info: ✅ Answer processed: 3 answers for page 3416a5d4-f05e-4b86-885f-dce207c85bd9 in session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:44:17.132Z"}
+event-consumer  | info: ✅ Quota reserved: 14f98303-10dd-451c-b4d8-a9ddafc9ddb8 for session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:44:17.134Z"}
+event-consumer  | info: 📊 Processing answer event: answer.upserted {"answerCount":3,"pageId":"7e6e4027-c961-4582-bbd0-32fa50f4516e","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:44:28.139Z"}
+event-consumer  | info: ✅ Answer processed: 3 answers for page 7e6e4027-c961-4582-bbd0-32fa50f4516e in session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:44:28.336Z"}
+event-consumer  | info: 📊 Processing quota event: quota.reserved {"bucketId":"635c10e0-a30c-4f3c-9849-795e1c74be81","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:44:28.342Z"}
+event-consumer  | info: ✅ Quota reserved: 635c10e0-a30c-4f3c-9849-795e1c74be81 for session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:44:28.375Z"}
+event-consumer  | info: 📊 Processing answer event: answer.upserted {"answerCount":1,"pageId":"cce93ec9-f88d-4711-8060-bb667ccafdc2","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:44:32.155Z"}
+event-consumer  | info: ✅ Answer processed: 1 answers for page cce93ec9-f88d-4711-8060-bb667ccafdc2 in session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:44:32.170Z"}
+event-consumer  | info: 📊 Processing quota event: quota.reserved {"bucketId":"9386f37e-f650-4707-ac78-ed37e62399e6","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:44:32.171Z"}
+event-consumer  | info: ✅ Quota reserved: 9386f37e-f650-4707-ac78-ed37e62399e6 for session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:44:32.173Z"}
+event-consumer  | info: 📊 Processing answer event: answer.upserted {"answerCount":4,"pageId":"8532e9fd-2991-4ae0-be7a-382295b8e4ce","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:44:41.228Z"}
+event-consumer  | info: 📊 Processing quota event: quota.reserved {"bucketId":"29c916b8-a836-4071-b197-e4c50454cdc7","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:44:41.233Z"}
+event-consumer  | info: ✅ Quota reserved: 29c916b8-a836-4071-b197-e4c50454cdc7 for session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:44:41.254Z"}
+event-consumer  | info: ✅ Answer processed: 4 answers for page 8532e9fd-2991-4ae0-be7a-382295b8e4ce in session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:44:41.276Z"}
+event-consumer  | info: 📊 Processing answer event: answer.upserted {"answerCount":2,"pageId":"5c0cbcc1-c542-4d53-9fc2-1c80f36f2497","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:44:46.242Z"}
+event-consumer  | info: ✅ Answer processed: 2 answers for page 5c0cbcc1-c542-4d53-9fc2-1c80f36f2497 in session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:44:46.252Z"}
+event-consumer  | info: 📊 Processing quota event: quota.reserved {"bucketId":"98e005cc-076e-4ee4-ad7c-557f693a3cd3","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:44:46.254Z"}
+event-consumer  | info: ✅ Quota reserved: 98e005cc-076e-4ee4-ad7c-557f693a3cd3 for session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:44:46.258Z"}
+event-consumer  | info: 📊 Processing answer event: answer.upserted {"answerCount":1,"pageId":"8ac7ddd5-f72c-4ebf-aea8-38a59a2714e6","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:44:48.259Z"}
+event-consumer  | info: 📊 Processing quota event: quota.reserved {"bucketId":"9a6319fa-d719-4fc7-bfe5-497b023e306b","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:44:48.268Z"}
+event-consumer  | info: ✅ Quota reserved: 9a6319fa-d719-4fc7-bfe5-497b023e306b for session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:44:48.272Z"}
+event-consumer  | info: ✅ Answer processed: 1 answers for page 8ac7ddd5-f72c-4ebf-aea8-38a59a2714e6 in session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:44:48.274Z"}
+event-consumer  | info: 📊 Processing answer event: answer.upserted {"answerCount":1,"pageId":"581241ac-b38f-494b-8328-aa47f9fe1b0e","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:45:00.345Z"}
+event-consumer  | info: ✅ Answer processed: 1 answers for page 581241ac-b38f-494b-8328-aa47f9fe1b0e in session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:45:00.354Z"}
+event-consumer  | info: 📊 Processing answer event: answer.upserted {"answerCount":2,"pageId":"c1c5b058-1513-4d85-b99b-9fe681147d33","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:45:11.436Z"}
+event-consumer  | info: 📊 Processing quota event: quota.reserved {"bucketId":"75694c74-bec0-4b66-bf13-294ce5dab153","service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","timestamp":"2025-09-12T12:45:11.457Z"}
+event-consumer  | info: ✅ Answer processed: 2 answers for page c1c5b058-1513-4d85-b99b-9fe681147d33 in session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:45:11.460Z"}
+event-consumer  | info: ✅ Quota reserved: 75694c74-bec0-4b66-bf13-294ce5dab153 for session 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 {"service":"event-bus","timestamp":"2025-09-12T12:45:11.462Z"}
+event-consumer  | info: 📊 Processing session event: session.completed {"service":"event-bus","sessionId":"5814067a-2bbd-4cbd-96d0-d31ed9d56ba2","surveyId":"470ef48b-6725-4225-8029-ec8f954bb969","tenantId":"96fb4499-2ba5-47fc-b054-d48078961a4b","timestamp":"2025-09-12T12:45:11.484Z"}
+event-consumer  | info: ✅ Session completed: 5814067a-2bbd-4cbd-96d0-d31ed9d56ba2 (duration: 70379ms) {"service":"event-bus","timestamp":"2025-09-12T12:45:11.518Z"}       

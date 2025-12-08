@@ -1,0 +1,868 @@
+// ------------------------------
+// Prisma Generator & Datasource
+// ------------------------------
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------
+// Enums
+// ------------------------------
+
+// Per-product role (single role per member per product)
+enum AssignmentRole {
+  OWNER     // full control including member management
+  ADMIN     // manage product config & teams
+  MANAGER   // approve/publish, manage workflows/projects
+  EDITOR    // create/edit; no member management
+  USER      // limited contributor
+  VIEWER    // read-only
+}
+
+// Fixed catalog of products for v1 (enum is OK here)
+enum ProductCode {
+  SB   // Survey Builder
+  PM   // Project Management
+  PMM  // Panel Management
+}
+
+// ---- Survey Builder enums (added) ----
+enum SurveyStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum QuestionType {
+  // Basic Choice Types
+  SINGLE_CHOICE     // radio
+  MULTIPLE_CHOICE   // checkbox
+  DROPDOWN
+  YES_NO            // boolean with Yes/No labels
+  
+  // Text Input Types
+  TEXT              // single-line
+  TEXTAREA          // long
+  EMAIL             // email validation
+  PHONE_NUMBER      // phone validation
+  WEBSITE           // URL validation
+  
+  // Numeric Types
+  NUMBER
+  DECIMAL
+  SLIDER            // range slider
+  OPINION_SCALE     // rating scale (1-5, 1-10, etc.)
+  CONSTANT_SUM      // allocate points across options
+  
+  // Date/Time Types
+  DATE
+  TIME
+  BOOLEAN
+  DATETIME
+  
+  // Advanced Types
+  RANK              // drag and drop ranking
+  MATRIX_SINGLE     // grid (rows x columns) - single choice per row
+  MATRIX_MULTIPLE   // grid (rows x columns) - multiple choice per row
+  BIPOLAR_MATRIX    // matrix with bipolar scales
+  GROUP_RANK        // rank groups of items
+  GROUP_RATING      // rate groups of items
+  
+  // File Types
+  FILE_UPLOAD
+  PHOTO_CAPTURE     // camera capture
+  
+  // Special Types
+  PICTURE_CHOICE    // select from images
+  PAYMENT           // payment collection
+  SIGNATURE         // signature capture
+  CONSENT_AGREEMENT // legal consent
+  MESSAGE           // informational block
+  CONTACT_FORM      // contact information collection
+  DESCRIPTIVE       // text/HTML block (no answer)
+}
+
+enum OrderMode {
+  SEQUENTIAL
+  RANDOM
+  GROUP_RANDOM      // keep groups together, shuffle groups
+  WEIGHTED          // use option.weight
+}
+
+enum OptionsSource {
+  STATIC
+  CARRY_FORWARD     // pull options from another question dynamically
+}
+
+enum SessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  TERMINATED
+}
+
+enum QuotaStrategy {
+  MANUAL     // author enters targets per bucket
+  EQUAL      // split total equally across buckets
+  RANDOM     // split total randomly across buckets (but sum = total)
+}
+
+enum QuotaState {
+  OPEN
+  CLOSED
+}
+
+// ------------------------------
+// Loop Source Type
+// ------------------------------
+enum LoopSourceType {
+  ANSWER   // items come from a previous multi-select question
+  DATASET  // items come from authored dataset rows
+}
+
+enum CollectorType {
+  PUBLIC     // open link, no auth
+  SINGLE_USE // invite-only token
+  INTERNAL   // only authenticated tenant members (RBAC)
+  PANEL      // placeholder (coming soon)
+}
+// ------------------------------
+// Core Identity
+// ------------------------------
+model User {
+  id            String              @id @default(uuid())
+  email         String              @unique
+  passwordHash  String
+  name          String?
+  isActive      Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  memberships   TenantMembership[]
+}
+
+// ------------------------------
+// 2FA & Email Verification
+// ------------------------------
+model SignupIntent {
+  id           String   @id @default(uuid())
+  email        String
+  passwordHash String
+  name         String?
+  tenantName   String
+  tenantSlug   String
+  productCode  ProductCode
+  status       String   @default("PENDING") // "PENDING" | "COMPLETED" | "EXPIRED"
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  emailOtps    EmailOtp[]
+
+  @@index([email])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model EmailOtp {
+  id               String   @id @default(uuid())
+  signupIntentId   String
+  codeHash         String   // hashed OTP code
+  purpose          String   // "SIGNUP_EMAIL" | "RESET_PASSWORD" | "LOGIN_2FA"
+  expiresAt        DateTime
+  attempts         Int      @default(0)
+  consumedAt       DateTime? // when OTP was successfully used
+  createdAt        DateTime @default(now())
+
+  signupIntent     SignupIntent @relation(fields: [signupIntentId], references: [id], onDelete: Cascade)
+
+  @@index([signupIntentId])
+  @@index([purpose])
+  @@index([expiresAt])
+}
+
+// ------------------------------
+// Tenancy & RBAC
+// ------------------------------
+model Tenant {
+  id           String              @id @default(uuid())
+  name         String
+  slug         String              @unique
+  isActive     Boolean             @default(true)
+  tierCode     String?             // simple label for UI gating: "FREE" | "PRO" | "PREMIUM"
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  memberships  TenantMembership[]
+  products     TenantProduct[]
+}
+
+// A user belongs to a tenant (organization/account)
+model TenantMembership {
+  id              String   @id @default(uuid())
+  tenantId        String
+  userId          String
+  joinedAt        DateTime @default(now())
+  isActive        Boolean  @default(true)
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  roleAssignments RoleAssignment[]
+
+  @@unique([tenantId, userId])  // one membership per user per tenant
+  @@index([tenantId])
+  @@index([userId])
+}
+
+// ------------------------------
+// Product Catalog (minimal)
+// ------------------------------
+model Product {
+  id          String       @id @default(uuid())
+  code        ProductCode  @unique
+  name        String
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  tenantLinks TenantProduct[]
+}
+
+// What a tenant has access to (purchase/activation record)
+model TenantProduct {
+  id             String    @id @default(uuid())
+  tenantId       String
+  productId      String
+  status         String    @default("active")  // "active" | "trial" | "canceled"
+  licenseStart   DateTime  @default(now())
+  licenseEnd     DateTime?
+
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product        Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  roleAssignments RoleAssignment[]
+
+  @@unique([tenantId, productId]) // a tenant has at most one row per product
+  @@index([tenantId])
+  @@index([productId])
+}
+
+// Assigns a per-product role to a tenant member
+model RoleAssignment {
+  id               String           @id @default(uuid())
+  membershipId     String
+  tenantProductId  String
+  role             AssignmentRole
+  grantedAt        DateTime         @default(now())
+
+  membership       TenantMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  tenantProduct    TenantProduct    @relation(fields: [tenantProductId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, tenantProductId]) // exactly one role per member per product
+  @@index([tenantProductId])
+}
+
+// ========================================================
+// ================= Survey Builder (ADDED) ===============
+// ========================================================
+
+// Store reusable logic expressions for visibility/branching, as DSL.
+model Expression {
+  id          String   @id @default(uuid())
+  tenantId    String
+  surveyId    String
+  dsl         String   // e.g., "anySelected('Q1',['Apple','Banana']) && equals(answer('Q2'),'Dog')"
+  description String?
+  compiled    Json?    // optional: compiled AST for faster eval
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  survey      Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  // Opposite relations for all the fields that reference this model
+  pageVisibleIf              SurveyPage[]     @relation("PageVisibleIf")
+  questionVisibleIf          Question[]       @relation("QuestionVisibleIf")
+  questionCarryForwardFilter Question[]       @relation("QuestionCarryForwardFilter")
+  questionTerminateIf        Question[]       @relation("QuestionTerminateIf")
+  optionVisibleIf            QuestionOption[] @relation("OptionVisibleIf")
+  questionItemVisibleIf      QuestionItem[]   @relation("QuestionItemVisibleIf")
+  questionScaleVisibleIf     QuestionScale[]  @relation("QuestionScaleVisibleIf")
+  pageJumpCondition          PageJump[]       @relation("PageJumpCondition")
+  questionJumpCondition      QuestionJump[]   @relation("QuestionJumpCondition")
+  groupVisibleIf             PageQuestionGroup[] @relation("GroupVisibleIf")
+  quotaBucketCondition       QuotaBucket[] @relation("QuotaBucketCondition")
+
+  @@index([tenantId, surveyId])
+}
+
+model Survey {
+  id               String        @id @default(uuid())
+  tenantId         String
+  title            String
+  description      String?
+  status           SurveyStatus  @default(DRAFT)
+  version          Int           @default(1)
+  defaultLanguage  String?
+  settings         Json?         // { progressBar, allowBack, theme, ... }
+  createdByUserId  String?
+  slug             String?       // pretty URL, unique per tenant if used
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  pages            SurveyPage[]
+  questions        Question[]
+  expressions      Expression[]
+  pageJumps        PageJump[]
+  questionJumps    QuestionJump[]
+  sessions         SurveySession[]
+  target           SurveyTarget?
+  quotaPlans       QuotaPlan[]
+  loopBatteries    LoopBattery[]
+  collectors       SurveyCollector[]
+
+  @@index([tenantId, status])
+  @@unique([tenantId, slug])
+}
+
+model SurveyPage {
+  id                      String      @id @default(uuid())
+  tenantId                String
+  surveyId                String
+  index                   Int         // 1-based order within survey
+  titleTemplate           String?
+  descriptionTemplate     String?
+  questionOrderMode       OrderMode   @default(SEQUENTIAL)
+  visibleIfExpressionId   String?
+
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+
+  survey                  Survey      @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  visibleIf               Expression? @relation("PageVisibleIf", fields: [visibleIfExpressionId], references: [id])
+
+  questions               Question[]
+  questionGroups          PageQuestionGroup[]
+  fromJumps               PageJump[]  @relation("PageJumpFrom")
+  toJumps                 PageJump[]  @relation("PageJumpTo")
+  questionJumpsTo         QuestionJump[] @relation("QuestionJumpToPage")
+  
+  // Loop relations
+  loopBatteriesAsStart    LoopBattery[] @relation("LoopStartPage")
+  loopBatteriesAsEnd      LoopBattery[] @relation("LoopEndPage")
+
+  groupOrderMode          OrderMode   @default(SEQUENTIAL)  
+
+  @@unique([surveyId, index])
+  @@index([tenantId, surveyId])
+}
+
+model SurveyTarget {
+  id         String   @id @default(uuid())
+  surveyId   String   @unique
+  tenantId   String
+  totalN     Int
+  softCloseN Int?
+  hardClose  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  survey     Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, surveyId])
+}
+
+model QuotaPlan {
+  id          String        @id @default(uuid())
+  surveyId    String
+  tenantId    String
+  name        String
+  strategy    QuotaStrategy @default(MANUAL)
+  totalN      Int
+  state       QuotaState    @default(OPEN)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  buckets     QuotaBucket[]
+
+  survey      Survey        @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, surveyId])
+}
+
+model QuotaBucket {
+  id                 String   @id @default(uuid())
+  planId             String
+  tenantId           String
+  label              String
+  questionId         String?
+  optionValue        String?
+  conditionExprId    String?
+  targetN            Int
+  filledN            Int      @default(0)
+  reservedN          Int      @default(0)
+  maxOverfill        Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  plan               QuotaPlan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  condition          Expression? @relation("QuotaBucketCondition", fields: [conditionExprId], references: [id])
+  reservations       QuotaReservation[]
+
+  @@index([planId])
+  @@index([tenantId, planId])
+}
+
+model QuotaReservation {
+  id          String   @id @default(uuid())
+  bucketId    String
+  sessionId   String
+  surveyId    String
+  tenantId    String
+  status      String   @default("ACTIVE") // ACTIVE | RELEASED | FINALIZED
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bucket      QuotaBucket   @relation(fields: [bucketId], references: [id], onDelete: Cascade)
+  session     SurveySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, bucketId])
+  @@index([bucketId, status])
+}
+
+model Question {
+  id                         String        @id @default(uuid())
+  tenantId                   String
+  surveyId                   String
+  pageId                     String
+  index                      Int
+  type                       QuestionType
+  variableName               String        // "Q1", unique per survey
+  titleTemplate              String
+  helpTextTemplate           String?
+  required                   Boolean       @default(false)
+  validation                 Json?         // { min, max, pattern, ... }
+  optionOrderMode            OrderMode     @default(SEQUENTIAL)
+  optionsSource              OptionsSource @default(STATIC)
+  carryForwardQuestionId     String?
+  carryForwardFilterExprId   String?
+  visibleIfExpressionId      String?
+  
+  // Termination logic
+  terminateIfExpressionId    String?
+
+  // Type-specific configuration fields
+  // Numeric/Slider/Rating configuration
+  minValue                   Decimal?      // minimum value for sliders, ratings
+  maxValue                   Decimal?      // maximum value for sliders, ratings
+  stepValue                  Decimal?      // step size for sliders
+  defaultValue               Decimal?      // default value
+  
+  // Scale configuration for OPINION_SCALE, BIPOLAR_MATRIX
+  scaleMinLabel              String?       // e.g., "Poor", "Strongly Disagree"
+  scaleMaxLabel              String?       // e.g., "Excellent", "Strongly Agree"
+  scaleSteps                 Int?          // number of scale steps (default: 5)
+  
+  // Multiple choice configuration
+  maxSelections              Int?          // max selections for MULTIPLE_CHOICE
+  allowOther                 Boolean       @default(false) // "Other" option
+  otherLabel                 String?       // label for "Other" option
+  
+  // File upload configuration
+  allowedFileTypes           String[]      @default([]) // ["jpg", "png", "pdf"]
+  maxFileSize                Int?          // max file size in bytes
+  maxFiles                   Int?          @default(1) // max number of files
+  
+  // Date/Time configuration
+  dateFormat                 String?       // "MM/DD/YYYY", "DD/MM/YYYY", etc.
+  timeFormat                 String?       // "12h", "24h"
+  minDate                    DateTime?     // earliest allowed date
+  maxDate                    DateTime?     // latest allowed date
+  
+  // Phone number configuration
+  phoneFormat                String?       // "US", "INTERNATIONAL", "E164"
+  countryCode                String?       @default("US") // default country
+  
+  // Website/URL configuration
+  urlProtocol                String?       @default("https") // "http", "https", "both"
+  
+  // Payment configuration
+  paymentAmount              Decimal?      // fixed amount
+  currency                   String?       @default("USD")
+  paymentMethods             String[]      @default(["card"]) // ["card", "paypal", "bank"]
+  
+  // Picture choice configuration
+  imageLayout                String?       @default("grid") // "grid", "list", "carousel"
+  imageSize                  String?       @default("medium") // "small", "medium", "large"
+  
+  // Matrix configuration
+  matrixType                 String?       @default("single") // "single", "multiple", "rating"
+  showHeaders                Boolean       @default(true)
+  randomizeRows              Boolean       @default(false)
+  randomizeColumns           Boolean       @default(false)
+  
+  // Constant sum configuration
+  totalPoints                Int?          @default(100) // total points to allocate
+  allowZero                  Boolean       @default(true) // allow 0 points
+  
+  // Signature configuration
+  signatureWidth             Int?          @default(400)
+  signatureHeight            Int?          @default(200)
+  signatureColor             String?       @default("#000000")
+  
+  // Consent/Agreement configuration
+  consentText                String?       // legal text for consent
+  requireSignature           Boolean       @default(false) // require signature for consent
+  
+  // Contact form configuration
+  collectName                Boolean       @default(true)
+  collectEmail               Boolean       @default(true)
+  collectPhone               Boolean       @default(false)
+  collectCompany             Boolean       @default(false)
+  collectAddress             Boolean       @default(false)
+  showIpsosBranding          Boolean       @default(false)
+  
+  // Group ranking/rating configuration
+  groupSize                  Int?          @default(3) // items per group
+  groupLabel                 String?       // label for groups
+  
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
+
+  groupId        String?
+  groupIndex     Int?        // order within the group
+
+  group          PageQuestionGroup? @relation(fields: [groupId], references: [id])
+
+  
+
+  survey                     Survey        @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  page                       SurveyPage    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  // 👇 Give each relation to Expression a unique name
+  visibleIf                  Expression?   @relation("QuestionVisibleIf", fields: [visibleIfExpressionId], references: [id])
+  carryForwardFilter         Expression?   @relation("QuestionCarryForwardFilter", fields: [carryForwardFilterExprId], references: [id])
+  terminateIf                Expression?   @relation("QuestionTerminateIf", fields: [terminateIfExpressionId], references: [id])
+
+  options                    QuestionOption[]
+  items                      QuestionItem[]      // rows for MATRIX_SINGLE/MATRIX_MULTIPLE
+  scales                     QuestionScale[]     // columns/scale for MATRIX_SINGLE/MATRIX_MULTIPLE
+  fromJumps                  QuestionJump[]      @relation("QuestionJumpFrom")
+  toJumps                    QuestionJump[]      @relation("QuestionJumpToQuestion")
+  answers                    Answer[]
+  
+  // Loop relations
+  loopBatteriesAsSource      LoopBattery[] @relation("LoopSourceQuestion")
+
+  @@unique([surveyId, variableName])
+  @@unique([pageId, index])
+  @@unique([groupId, groupIndex])
+  @@index([tenantId, surveyId])
+}
+
+model QuestionOption {
+  id                    String      @id @default(uuid())
+  tenantId              String
+  surveyId              String
+  questionId            String
+  index                 Int
+  value                 String      // stored in answers
+  labelTemplate         String
+  exclusive             Boolean     @default(false) // e.g., "None of the above"
+  groupKey              String?     // for GROUP_RANDOM
+  weight                Int?        // for WEIGHTED randomization
+  visibleIfExpressionId String?
+
+  // Picture choice specific fields
+  imageUrl              String?     // URL for picture choice options
+  imageAlt              String?     // alt text for accessibility
+  imageWidth            Int?        // display width
+  imageHeight           Int?        // display height
+
+  question              Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  visibleIf             Expression? @relation("OptionVisibleIf", fields: [visibleIfExpressionId], references: [id])
+
+  @@unique([questionId, index])
+  @@unique([questionId, value])
+  @@index([tenantId, surveyId])
+}
+
+model QuestionItem {
+  id         String   @id @default(uuid())
+  tenantId   String
+  surveyId   String
+  questionId String
+  index      Int
+  value      String    // row key
+  label      String
+  visibleIfExpressionId String?
+
+  question              Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  visibleIf             Expression? @relation("QuestionItemVisibleIf", fields: [visibleIfExpressionId], references: [id])
+
+  @@unique([questionId, index])
+  @@index([tenantId, surveyId])
+}
+
+model QuestionScale {
+  id         String   @id @default(uuid())
+  tenantId   String
+  surveyId   String
+  questionId String
+  index      Int
+  value      String    // column key (e.g., "1".."5")
+  label      String
+  visibleIfExpressionId String?
+  question              Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  visibleIf             Expression? @relation("QuestionScaleVisibleIf", fields: [visibleIfExpressionId], references: [id])
+
+  @@unique([questionId, index])
+  @@index([tenantId, surveyId])
+}
+
+// Evaluate jumps in ascending priority; first match wins.
+// If none matches, default is next page in index order.
+model PageJump {
+  id                    String      @id @default(uuid())
+  tenantId              String
+  surveyId              String
+  fromPageId            String
+  toPageId              String
+  conditionExpressionId String?
+  priority              Int         @default(0)
+
+  survey                Survey      @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  fromPage              SurveyPage  @relation("PageJumpFrom", fields: [fromPageId], references: [id], onDelete: Cascade)
+  toPage                SurveyPage  @relation("PageJumpTo",   fields: [toPageId],   references: [id], onDelete: Cascade)
+  condition             Expression? @relation("PageJumpCondition", fields: [conditionExpressionId], references: [id])
+
+  @@index([tenantId, surveyId, fromPageId])
+  @@index([tenantId, surveyId, toPageId])
+}
+
+model QuestionJump {
+  id                    String      @id @default(uuid())
+  tenantId              String
+  surveyId              String
+  fromQuestionId        String
+  toPageId              String?
+  toQuestionId          String?
+  conditionExpressionId String?
+  priority              Int         @default(0)
+
+  survey                Survey      @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  fromQuestion          Question    @relation("QuestionJumpFrom", fields: [fromQuestionId], references: [id], onDelete: Cascade)
+  toPage                SurveyPage? @relation("QuestionJumpToPage", fields: [toPageId], references: [id])
+  toQuestion            Question?   @relation("QuestionJumpToQuestion", fields: [toQuestionId], references: [id])
+  condition             Expression? @relation("QuestionJumpCondition", fields: [conditionExpressionId], references: [id])
+
+  @@index([tenantId, surveyId, fromQuestionId])
+}
+
+model SurveySession {
+  id          String        @id @default(uuid())
+  tenantId    String
+  surveyId    String
+  collectorId String?
+  inviteId    String?
+  status      SessionStatus @default(IN_PROGRESS)
+  startedAt   DateTime      @default(now())
+  finalizedAt DateTime?
+  locale      String?
+  source      String?       // "web", "mobile", campaign id, etc.
+  meta        Json?         // device info, ip hash, etc.
+  renderState Json?         // sticky per-page option orders, visibility cache, etc.
+  
+  // Progress tracking fields for session resumption
+  currentPageId     String?     // Last page user was on
+  lastActivityAt    DateTime?   // When user last interacted
+  progressData      Json?       // Current answers, page history, etc.
+  resumeToken       String?     // Optional: for email-based resume
+  resumeExpiresAt   DateTime?   // When resume token expires
+
+  survey      Survey        @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  collector   SurveyCollector? @relation(fields: [collectorId], references: [id])
+  answers     Answer[]
+  reservations QuotaReservation[]
+
+  @@index([tenantId, surveyId, status])
+  @@index([collectorId])
+}
+
+model Answer {
+  id           String   @id @default(uuid())
+  tenantId     String
+  surveyId     String
+  sessionId    String
+  questionId   String
+  choices      String[] @default([]) // selected option "value" entries
+  textValue    String?
+  numericValue Int?
+  decimalValue Decimal?
+  dateValue    DateTime?
+  timeValue    DateTime?
+  jsonValue    Json?    // matrix/rank/file metadata
+  
+  // Additional answer fields for new question types
+  booleanValue Boolean? // for YES_NO questions
+  emailValue   String?  // for EMAIL questions
+  phoneValue   String?  // for PHONE_NUMBER questions
+  urlValue     String?  // for WEBSITE questions
+  fileUrls     String[] @default([]) // for FILE_UPLOAD, PHOTO_CAPTURE
+  signatureUrl String?  // for SIGNATURE questions
+  paymentId    String?  // for PAYMENT questions (reference to payment system)
+  paymentStatus String? // "pending", "completed", "failed", "refunded"
+  
+  createdAt    DateTime @default(now())
+
+  session      SurveySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  question     Question      @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  // Optional convenience: keep surveyId for indexing; relation is not required
+
+  @@index([tenantId, surveyId, sessionId])
+  @@unique([sessionId, questionId]) // one answer per question per session
+}
+
+// Group questions within a page and optionally shuffle the groups.
+model PageQuestionGroup {
+  id                      String      @id @default(uuid())
+  tenantId                String
+  surveyId                String
+  pageId                  String
+  index                   Int         // order of the group within the page
+  key                     String?     // stable code if you want to reference in exports
+  titleTemplate           String?
+  descriptionTemplate     String?
+  visibleIfExpressionId   String?
+  // Order of questions inside the group (defaults to question.index):
+  innerOrderMode          OrderMode   @default(SEQUENTIAL)
+
+  page                    SurveyPage  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  visibleIf               Expression? @relation("GroupVisibleIf", fields: [visibleIfExpressionId], references: [id])
+  questions               Question[]
+
+  @@unique([pageId, index])
+  @@index([tenantId, surveyId, pageId])
+}
+
+model LoopBattery {
+  id            String          @id @default(uuid())
+  tenantId      String
+  surveyId      String
+  name          String          // e.g., "Brand Battery"
+
+  // The contiguous page span to repeat
+  startPageId   String
+  endPageId     String
+
+  // Item source
+  sourceType    LoopSourceType
+  sourceQuestionId String?      // required when sourceType=ANSWER
+
+  // Per-respondent behavior
+  maxItems      Int?            // cap items asked per respondent
+  randomize     Boolean         @default(true)
+  sampleWithoutReplacement Boolean @default(true)
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  survey        Survey          @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  startPage     SurveyPage      @relation("LoopStartPage", fields: [startPageId], references: [id], onDelete: Cascade)
+  endPage       SurveyPage      @relation("LoopEndPage",   fields: [endPageId],   references: [id], onDelete: Cascade)
+  sourceQuestion Question?      @relation("LoopSourceQuestion", fields: [sourceQuestionId], references: [id], onDelete: Cascade)
+
+  // Optional: also used for ANSWER loops if you want richer metadata per option
+  datasetItems  LoopDatasetItem[]
+
+  @@index([tenantId, surveyId])
+}
+
+model LoopDatasetItem {
+  id         String     @id @default(uuid())
+  batteryId  String
+  key        String     // stable code: e.g., "BrandA" or "SKU-123"
+  attributes Json?      // { "brand":"BrandA", "price": 9.99, "imageUrl":"..." }
+  isActive   Boolean    @default(true)
+  sortIndex  Int?
+
+  battery    LoopBattery @relation(fields: [batteryId], references: [id], onDelete: Cascade)
+
+  @@unique([batteryId, key])
+  @@index([batteryId])
+}
+
+// ------------------------------
+// Survey Collectors (Links)
+// ------------------------------
+model SurveyCollector {
+  id                    String        @id @default(uuid())
+  tenantId              String
+  surveyId              String
+  type                  CollectorType
+  name                  String
+  slug                  String        @unique
+  status                String        @default("active") // "active" | "paused" | "closed"
+  opensAt               DateTime?
+  closesAt              DateTime?
+  maxResponses          Int?
+  allowMultiplePerDevice Boolean      @default(false)
+  allowTest             Boolean       @default(false)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  survey                Survey        @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  invites               CollectorInvite[]
+  sessions              SurveySession[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, surveyId])
+  @@index([slug])
+}
+
+model CollectorInvite {
+  id          String   @id @default(uuid())
+  collectorId String
+  token       String   @unique
+  email       String?
+  externalId  String?
+  expiresAt   DateTime?
+  consumedAt  DateTime?
+  status      String   @default("active") // "active" | "used" | "expired"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  collector   SurveyCollector @relation(fields: [collectorId], references: [id], onDelete: Cascade)
+
+  @@index([collectorId])
+  @@index([token])
+  @@index([email])
+}
+
+// ------------------------------
+// Event-Driven Architecture
+// ------------------------------
+
+// Transactional Outbox for reliable event publishing
+model OutboxEvent {
+  id           String   @id @default(uuid())
+  tenantId     String
+  surveyId     String?
+  sessionId    String?
+  type         String   // e.g., "session.completed", "answer.upserted"
+  payload      Json     // small, self-contained event data
+  occurredAt   DateTime @default(now()) // event timestamp
+  availableAt  DateTime @default(now()) // next retry time
+  attempts     Int      @default(0)
+  lockedAt     DateTime?
+  processedAt  DateTime?
+
+  @@index([processedAt, availableAt])
+  @@index([tenantId, surveyId, type])
+  @@index([sessionId])
+}
