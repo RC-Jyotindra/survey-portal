@@ -2,12 +2,14 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: postgres
-    # SECURITY: NO PORTS EXPOSED - Only accessible within Docker network
-    # REMOVED: ports: - "5432:5432" - This was exposing PostgreSQL to the internet!
+    # NOTE: Ports exposed for easy access - ensure strong password in .env file!
+    # SECURITY: Use strong POSTGRES_PASSWORD and firewall rules
+    ports:
+      - "5432:5432"
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-rc_survey_db}
       - POSTGRES_USER=${POSTGRES_USER:-rc_survey_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # REQUIRED - Set via .env file
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # REQUIRED - Set strong password in .env file!
       # Enable stronger authentication
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
     volumes:
@@ -24,13 +26,13 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
-    # SECURITY: Only bind to localhost (127.0.0.1), not 0.0.0.0
-    # Access via SSH tunnel in production: ssh -L 8080:localhost:8080 user@server
+    # NOTE: Ports exposed for easy access - ensure strong password in .env file!
+    # SECURITY: Use strong PGADMIN_PASSWORD and firewall rules
     ports:
-      - "127.0.0.1:8080:80"  # Only accessible from localhost
+      - "8080:80"
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@rc-survey.com}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}  # REQUIRED - Set via .env file (strong password)
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}  # REQUIRED - Set strong password in .env file!
       # Security settings
       - PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION=True
       - PGADMIN_CONFIG_LOGIN_BANNER="Authorized users only"
