@@ -30,8 +30,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis
-    # SECURITY: Redis is now secured with password and internal network only
-    # NO PORTS EXPOSED - Only accessible within Docker network
+    # SECURITY: Redis secured with password
+    # Exposed to localhost only for PM2 services on host
     command: 
       - redis-server
       - --requirepass
@@ -40,9 +40,9 @@ services:
       - yes
       - --protected-mode
       - yes
-      - --bind
-      - 127.0.0.1
-    # REMOVED: ports: - "6379:6379" - This was exposing Redis to the internet!
+    # Expose to localhost only (for PM2 services), not 0.0.0.0
+    ports:
+      - "127.0.0.1:6379:6379"  # localhost only, not exposed to internet
     volumes:
       - redis-data:/data
     networks:
@@ -84,7 +84,8 @@ services:
 networks:
   internal:
     driver: bridge
-    internal: true  # Uncomment to make network completely internal (no external access)
+    # internal: true  # Commented out - allows host access for PM2 services
+    # Note: If both compose files use same network name, start them together
 
 volumes:
   kafka-data:
