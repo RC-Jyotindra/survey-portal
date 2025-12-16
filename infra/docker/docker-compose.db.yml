@@ -2,17 +2,21 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: postgres
-    ports:
-      - "5432:5432"
+    # SECURITY: NO PORTS EXPOSED - Only accessible within Docker network
+    # REMOVED: ports: - "5432:5432" - This was exposing PostgreSQL to the internet!
     environment:
-      - POSTGRES_DB=rc_survey_db
-      - POSTGRES_USER=rc_survey_user
-      - POSTGRES_PASSWORD=rc_survey_password
+      - POSTGRES_DB=${POSTGRES_DB:-rc_survey_db}
+      - POSTGRES_USER=${POSTGRES_USER:-rc_survey_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # REQUIRED - Set via .env file
+      # Enable stronger authentication
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    networks:
+      - internal
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rc_survey_user -d rc_survey_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rc_survey_user} -d ${POSTGRES_DB:-rc_survey_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -20,17 +24,29 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
+    # SECURITY: Only bind to localhost (127.0.0.1), not 0.0.0.0
+    # Access via SSH tunnel in production: ssh -L 8080:localhost:8080 user@server
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"  # Only accessible from localhost
     environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@rc-survey.com
-      - PGADMIN_DEFAULT_PASSWORD=admin123
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@rc-survey.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}  # REQUIRED - Set via .env file (strong password)
+      # Security settings
+      - PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION=True
+      - PGADMIN_CONFIG_LOGIN_BANNER="Authorized users only"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - internal
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+
+networks:
+  internal:
+    driver: bridge
+    # internal: true  # Uncomment to make network completely internal (no external access)
 
 volumes:
   postgres-data:
