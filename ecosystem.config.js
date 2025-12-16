@@ -136,9 +136,16 @@ module.exports = {
           // SECURITY: Database configuration with password from environment variable
           // IMPORTANT: Set POSTGRES_PASSWORD environment variable before starting PM2
           // Use: export POSTGRES_PASSWORD=your_strong_password
-          DATABASE_URL: process.env.POSTGRES_PASSWORD 
-            ? `postgresql://${process.env.POSTGRES_USER || 'rc_survey_user'}:${process.env.POSTGRES_PASSWORD}@localhost:5432/${process.env.POSTGRES_DB || 'rc_survey_db'}`
-            : 'postgresql://rc_survey_user:CHANGE_THIS_PASSWORD@localhost:5432/rc_survey_db',
+          // Password is automatically URL-encoded to handle special characters (+, /, =, etc.)
+          DATABASE_URL: (() => {
+            if (process.env.POSTGRES_PASSWORD) {
+              const user = process.env.POSTGRES_USER || 'rc_survey_user';
+              const password = encodeURIComponent(process.env.POSTGRES_PASSWORD); // URL-encode password
+              const db = process.env.POSTGRES_DB || 'rc_survey_db';
+              return `postgresql://${user}:${password}@localhost:5432/${db}`;
+            }
+            return 'postgresql://rc_survey_user:CHANGE_THIS_PASSWORD@localhost:5432/rc_survey_db';
+          })(),
           KAFKA_BROKERS: 'localhost:9092',
           KAFKA_CLIENT_ID: 'survey-service',
           KAFKA_GROUP_ID: 'survey-service-group',
