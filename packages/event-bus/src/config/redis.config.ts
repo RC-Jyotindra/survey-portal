@@ -19,20 +19,41 @@ export class RedisClient {
   constructor(config: RedisConfig) {
     this.config = config;
     
+    // SECURITY: Validate password is provided in production
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (isProduction && !config.password && !config.url?.includes('@')) {
+      logger.warn('⚠️  WARNING: Redis password not provided in production environment!');
+      logger.warn('⚠️  This is a security risk. Please set REDIS_PASSWORD environment variable.');
+    }
+    
     const redisOptions: RedisOptions = {
       retryDelayOnFailover: config.retryDelayOnFailover || 100,
       maxRetriesPerRequest: config.maxRetriesPerRequest || 3,
       lazyConnect: config.lazyConnect || true,
+      // Connection timeout
+      connectTimeout: 10000,
+      // Retry strategy
+      retryStrategy: (times) => {
+        if (times > 3) {
+          logger.error('Redis connection failed after 3 retries');
+          return null; // Stop retrying
+        }
+        return Math.min(times * 200, 2000);
+      },
+      // Reconnect on error
+      enableReadyCheck: true,
       ...config
     };
 
     if (config.url) {
+      // If URL is provided, use it (should include password: redis://:password@host:port)
       this.redis = new Redis(config.url, redisOptions);
     } else {
+      // Use individual config options
       this.redis = new Redis({
         host: config.host || 'localhost',
         port: config.port || 6379,
-        password: config.password,
+        password: config.password, // REQUIRED for production
         db: config.db || 0,
         ...redisOptions
       });
@@ -51,11 +72,21 @@ export class RedisClient {
     });
 
     this.redis.on('error', (error) => {
-      logger.error('Redis client error:', error);
+      // SECURITY: Log authentication errors specifically
+      if (error.message?.includes('NOAUTH') || error.message?.includes('invalid password')) {
+        logger.error('❌ Redis authentication failed. Check REDIS_PASSWORD environment variable.');
+        logger.error('Redis error:', error.message);
+      } else {
+        logger.error('Redis client error:', error);
+      }
     });
 
     this.redis.on('close', () => {
       logger.info('Redis client connection closed');
+    });
+
+    this.redis.on('reconnecting', (delay: number) => {
+      logger.warn(`Redis client reconnecting in ${delay}ms...`);
     });
   }
 
@@ -183,12 +214,30 @@ export class RedisClient {
 
 // Factory function to create Redis client from environment variables
 export function createRedisClient(): RedisClient {
+  const password = process.env.REDIS_PASSWORD;
+  const host = process.env.REDIS_HOST || 'localhost';
+  const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+  const db = parseInt(process.env.REDIS_DB || '0', 10);
+  
+  // SECURITY: Build Redis URL with password if provided
+  // Format: redis://:password@host:port/db
+  let redisUrl = process.env.REDIS_URL;
+  
+  if (!redisUrl && password) {
+    // Construct URL with password if not provided but password exists
+    redisUrl = `redis://:${encodeURIComponent(password)}@${host}:${port}/${db}`;
+  } else if (!redisUrl) {
+    // No URL and no password - use individual config
+    redisUrl = undefined;
+  }
+  // If REDIS_URL is provided, use it as-is (should include password)
+  
   const config: RedisConfig = {
-    url: process.env.REDIS_URL,
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
-    password: process.env.REDIS_PASSWORD,
-    db: parseInt(process.env.REDIS_DB || '0', 10),
+    url: redisUrl,
+    host: host,
+    port: port,
+    password: password, // Always pass password separately too (for non-URL connections)
+    db: db,
     retryDelayOnFailover: 100,
     maxRetriesPerRequest: 3,
     lazyConnect: true

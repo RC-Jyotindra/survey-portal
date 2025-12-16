@@ -105,9 +105,15 @@ module.exports = {
           IPQS_ALLOW_PUBLIC: '1',
           VPN_BLOCK_THRESHOLD: '85',
           VPN_CHALLENGE_THRESHOLD: '60',
-          REDIS_URL: 'redis://localhost:6379', // Use localhost for internal Docker network
-          REDIS_PASSWORD: '',
+          // SECURITY: Redis configuration with password authentication
+          // IMPORTANT: Set REDIS_PASSWORD environment variable before starting PM2
+          // Use: export REDIS_PASSWORD=your_strong_password
+          REDIS_HOST: 'localhost',
+          REDIS_PORT: '6379',
+          REDIS_PASSWORD: process.env.REDIS_PASSWORD || '', // REQUIRED - Set via environment variable
           REDIS_DB: '0',
+          // Alternative: Use REDIS_URL with password: redis://:password@localhost:6379/0
+          // REDIS_URL: process.env.REDIS_PASSWORD ? `redis://:${process.env.REDIS_PASSWORD}@localhost:6379/0` : undefined,
           OUTBOX_BATCH_SIZE: '100',
           OUTBOX_POLL_INTERVAL_MS: '1000',
           OUTBOX_MAX_ATTEMPTS: '5',
@@ -140,9 +146,15 @@ module.exports = {
           IPQS_ALLOW_PUBLIC: '1',
           VPN_BLOCK_THRESHOLD: '85',
           VPN_CHALLENGE_THRESHOLD: '60',
-          REDIS_URL: 'redis://localhost:6379',
-          REDIS_PASSWORD: '',
+          // SECURITY: Redis configuration with password authentication
+          // IMPORTANT: Set REDIS_PASSWORD environment variable before starting PM2
+          // Use: export REDIS_PASSWORD=your_strong_password
+          REDIS_HOST: 'localhost',
+          REDIS_PORT: '6379',
+          REDIS_PASSWORD: process.env.REDIS_PASSWORD || '', // REQUIRED - Set via environment variable
           REDIS_DB: '0',
+          // Alternative: Use REDIS_URL with password: redis://:password@localhost:6379/0
+          // REDIS_URL: process.env.REDIS_PASSWORD ? `redis://:${process.env.REDIS_PASSWORD}@localhost:6379/0` : undefined,
           OUTBOX_BATCH_SIZE: '100',
           OUTBOX_POLL_INTERVAL_MS: '1000',
           OUTBOX_MAX_ATTEMPTS: '5',
