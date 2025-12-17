@@ -89,8 +89,8 @@ services:
     volumes:
       - postgres-wal-archive:/var/lib/postgresql/wal-archive
       - postgres-backups:/var/lib/postgresql/backups
-      # Mount backup scripts
-      - ./backup-scripts:/backup-scripts:ro
+      # Mount backup scripts (needs write access to set execute permissions)
+      - ./backup-scripts:/backup-scripts
       # SSH key for remote access (mount your SSH key here)
       # Create this directory and place your SSH private key: infra/docker/backup-keys/id_rsa
       - ./backup-keys:/backup-keys:ro
@@ -100,7 +100,7 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
-    entrypoint: ["/backup-scripts/entrypoint.sh"]
+    entrypoint: ["/bin/sh", "/backup-scripts/entrypoint.sh"]
 
 networks:
   internal:

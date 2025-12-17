@@ -11,6 +11,7 @@ REMOTE_HOST="${REMOTE_HOST}"
 REMOTE_USER="${REMOTE_USER}"
 REMOTE_BACKUP_PATH="${REMOTE_BACKUP_PATH:-/home/rcadmin/postgres-backups}"
 SSH_KEY_PATH="${REMOTE_SSH_KEY_PATH:-/backup-keys/id_rsa}"
+REMOTE_SSH_PASSWORD="${REMOTE_SSH_PASSWORD:-}"  # Optional: SSH password if key not available
 SYNC_INTERVAL="${WAL_SYNC_INTERVAL:-60}"  # Default: sync every 60 seconds
 
 # Ensure WAL archive directory exists
@@ -23,11 +24,30 @@ sync_wal_files() {
     return 0
   fi
   
+  # Build SSH command with optional key or password
+  SSH_CMD="ssh"
+  SCP_CMD="scp"
+  SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
+  
+  # Use SSH key if available, otherwise use password (via sshpass if installed)
+  if [ -f "${SSH_KEY_PATH}" ]; then
+    SSH_CMD="${SSH_CMD} -i ${SSH_KEY_PATH}"
+    SCP_CMD="${SCP_CMD} -i ${SSH_KEY_PATH}"
+  elif [ -n "${REMOTE_SSH_PASSWORD}" ]; then
+    if command -v sshpass >/dev/null 2>&1; then
+      SSH_CMD="sshpass -p '${REMOTE_SSH_PASSWORD}' ${SSH_CMD}"
+      SCP_CMD="sshpass -p '${REMOTE_SSH_PASSWORD}' ${SCP_CMD}"
+    else
+      echo "[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: Password provided but sshpass not installed. Skipping sync."
+      return 1
+    fi
+  else
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: No SSH key or password provided. Skipping WAL sync."
+    return 1
+  fi
+  
   # Create remote WAL archive directory
-  ssh -i "${SSH_KEY_PATH}" \
-      -o StrictHostKeyChecking=no \
-      -o UserKnownHostsFile=/dev/null \
-      -o ConnectTimeout=10 \
+  ${SSH_CMD} ${SSH_OPTS} \
       "${REMOTE_USER}@${REMOTE_HOST}" \
       "mkdir -p ${REMOTE_BACKUP_PATH}/wal-archive" 2>/dev/null || {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: Cannot connect to remote server, will retry"
@@ -43,10 +63,7 @@ sync_wal_files() {
     wal_filename=$(basename "${wal_file}")
     
     # Check if file exists on remote (quick check)
-    remote_exists=$(ssh -i "${SSH_KEY_PATH}" \
-        -o StrictHostKeyChecking=no \
-        -o UserKnownHostsFile=/dev/null \
-        -o ConnectTimeout=10 \
+    remote_exists=$(${SSH_CMD} ${SSH_OPTS} \
         "${REMOTE_USER}@${REMOTE_HOST}" \
         "test -f ${REMOTE_BACKUP_PATH}/wal-archive/${wal_filename} && echo 'yes' || echo 'no'" 2>/dev/null || echo "no")
     
@@ -54,10 +71,7 @@ sync_wal_files() {
       # File doesn't exist remotely, sync it
       echo "[$(date +'%Y-%m-%d %H:%M:%S')] Syncing WAL file: ${wal_filename}"
       
-      scp -i "${SSH_KEY_PATH}" \
-          -o StrictHostKeyChecking=no \
-          -o UserKnownHostsFile=/dev/null \
-          -o ConnectTimeout=10 \
+      ${SCP_CMD} ${SSH_OPTS} \
           "${wal_file}" \
           "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_BACKUP_PATH}/wal-archive/${wal_filename}" 2>/dev/null
       

@@ -16,13 +16,17 @@ echo "WAL Sync Interval: ${SYNC_INTERVAL} seconds"
 echo "Remote Host: ${REMOTE_USER}@${REMOTE_HOST}"
 echo "=========================================="
 
-# Install required packages (busybox cron, openssh-client)
-apk add --no-cache dcron openssh-client >/dev/null 2>&1 || {
+# Install required packages (busybox cron, openssh-client, sshpass for password auth)
+apk add --no-cache dcron openssh-client sshpass >/dev/null 2>&1 || {
   echo "WARNING: Could not install required packages. Some features may not work."
 }
 
-# Ensure scripts are executable
+# CRITICAL: Set execute permissions on all scripts
+# Git doesn't preserve execute permissions, so we must set them here
+echo "Setting execute permissions on backup scripts..."
 chmod +x /backup-scripts/*.sh
+chmod +x /backup-scripts/entrypoint.sh
+ls -la /backup-scripts/*.sh
 
 # Setup SSH for remote access
 if [ -f "${REMOTE_SSH_KEY_PATH:-/backup-keys/id_rsa}" ]; then

@@ -17,6 +17,7 @@ REMOTE_HOST="${REMOTE_HOST}"
 REMOTE_USER="${REMOTE_USER}"
 REMOTE_BACKUP_PATH="${REMOTE_BACKUP_PATH:-/home/rcadmin/postgres-backups}"
 SSH_KEY_PATH="${REMOTE_SSH_KEY_PATH:-/backup-keys/id_rsa}"
+REMOTE_SSH_PASSWORD="${REMOTE_SSH_PASSWORD:-}"  # Optional: SSH password if key not available
 
 # Export password for pg_basebackup
 export PGPASSWORD="${POSTGRES_PASSWORD}"
@@ -69,24 +70,48 @@ EOF
   if [ -n "${REMOTE_HOST}" ] && [ -n "${REMOTE_USER}" ]; then
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] Syncing backup to remote server: ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_BACKUP_PATH}"
     
+    # Build SSH/SCP command with optional key or password
+    SSH_CMD="ssh"
+    SCP_CMD="scp"
+    SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
+    
+    # Use SSH key if available, otherwise use password (via sshpass if installed)
+    if [ -f "${SSH_KEY_PATH}" ]; then
+      SSH_CMD="${SSH_CMD} -i ${SSH_KEY_PATH}"
+      SCP_CMD="${SCP_CMD} -i ${SSH_KEY_PATH}"
+      echo "[$(date +'%Y-%m-%d %H:%M:%S')] Using SSH key authentication"
+    elif [ -n "${REMOTE_SSH_PASSWORD}" ]; then
+      # Check if sshpass is available
+      if command -v sshpass >/dev/null 2>&1; then
+        SSH_CMD="sshpass -p '${REMOTE_SSH_PASSWORD}' ${SSH_CMD}"
+        SCP_CMD="sshpass -p '${REMOTE_SSH_PASSWORD}' ${SCP_CMD}"
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] Using password authentication (sshpass)"
+      else
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: Password provided but sshpass not installed. Install sshpass or use SSH key."
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] Install: apk add --no-cache sshpass (Alpine) or apt-get install sshpass (Debian/Ubuntu)"
+        return 1
+      fi
+    else
+      echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: No SSH key or password provided. Skipping remote sync (local backup still created)."
+      # Don't return error - local backup is still successful
+      return 0
+    fi
+    
     # Create remote directory structure
-    ssh -i "${SSH_KEY_PATH}" \
-        -o StrictHostKeyChecking=no \
-        -o UserKnownHostsFile=/dev/null \
+    ${SSH_CMD} ${SSH_OPTS} \
         "${REMOTE_USER}@${REMOTE_HOST}" \
-        "mkdir -p ${REMOTE_BACKUP_PATH}/base-backups"
+        "mkdir -p ${REMOTE_BACKUP_PATH}/base-backups" 2>/dev/null
     
     # Sync backup to remote
-    scp -i "${SSH_KEY_PATH}" \
-        -o StrictHostKeyChecking=no \
-        -o UserKnownHostsFile=/dev/null \
+    ${SCP_CMD} ${SSH_OPTS} \
         -r "${BACKUP_PATH}" \
-        "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_BACKUP_PATH}/base-backups/"
+        "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_BACKUP_PATH}/base-backups/" 2>/dev/null
     
     if [ $? -eq 0 ]; then
       echo "[$(date +'%Y-%m-%d %H:%M:%S')] Backup synced to remote server successfully"
     else
       echo "[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: Failed to sync backup to remote server"
+      echo "[$(date +'%Y-%m-%d %H:%M:%S')] Check network connectivity and credentials"
     fi
   fi
   
@@ -104,11 +129,22 @@ EOF
         
         # Also delete from remote if configured
         if [ -n "${REMOTE_HOST}" ] && [ -n "${REMOTE_USER}" ]; then
-          ssh -i "${SSH_KEY_PATH}" \
-              -o StrictHostKeyChecking=no \
-              -o UserKnownHostsFile=/dev/null \
-              "${REMOTE_USER}@${REMOTE_HOST}" \
-              "rm -rf ${REMOTE_BACKUP_PATH}/base-backups/$(basename "${old_backup}")" || true
+          # Use same SSH method as backup sync
+          if [ -f "${SSH_KEY_PATH}" ]; then
+            ssh -i "${SSH_KEY_PATH}" \
+                -o StrictHostKeyChecking=no \
+                -o UserKnownHostsFile=/dev/null \
+                -o ConnectTimeout=30 \
+                "${REMOTE_USER}@${REMOTE_HOST}" \
+                "rm -rf ${REMOTE_BACKUP_PATH}/base-backups/$(basename "${old_backup}")" 2>/dev/null || true
+          elif [ -n "${REMOTE_SSH_PASSWORD}" ] && command -v sshpass >/dev/null 2>&1; then
+            sshpass -p "${REMOTE_SSH_PASSWORD}" ssh \
+                -o StrictHostKeyChecking=no \
+                -o UserKnownHostsFile=/dev/null \
+                -o ConnectTimeout=30 \
+                "${REMOTE_USER}@${REMOTE_HOST}" \
+                "rm -rf ${REMOTE_BACKUP_PATH}/base-backups/$(basename "${old_backup}")" 2>/dev/null || true
+          fi
         fi
       fi
     done
