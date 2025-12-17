@@ -33,8 +33,6 @@ services:
       - "-c"
       - "max_wal_size=1GB"
       - "-c"
-      - "log_archive_command=on"
-      - "-c"
       - "log_checkpoints=on"
     networks:
       - internal
@@ -87,6 +85,7 @@ services:
       - REMOTE_USER=${REMOTE_BACKUP_USER:-rcadmin}
       - REMOTE_BACKUP_PATH=${REMOTE_BACKUP_PATH:-/home/rcadmin/postgres-backups}
       - REMOTE_SSH_KEY_PATH=${REMOTE_SSH_KEY_PATH:-/backup-keys/id_rsa}
+      - REMOTE_SSH_PASSWORD=${REMOTE_SSH_PASSWORD:-}  # Optional: Use password if SSH key not available
     volumes:
       - postgres-wal-archive:/var/lib/postgresql/wal-archive
       - postgres-backups:/var/lib/postgresql/backups
