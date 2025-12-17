@@ -14,6 +14,28 @@ services:
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      # WAL Archive and Backup volumes for PITR (Point-in-Time Recovery)
+      - postgres-wal-archive:/var/lib/postgresql/wal-archive
+      - postgres-backups:/var/lib/postgresql/backups
+    command:
+      - "postgres"
+      # WAL Archiving Configuration for PITR
+      - "-c"
+      - "wal_level=replica"
+      - "-c"
+      - "archive_mode=on"
+      - "-c"
+      - "archive_command=test ! -f /var/lib/postgresql/wal-archive/%f && cp %p /var/lib/postgresql/wal-archive/%f && chmod 600 /var/lib/postgresql/wal-archive/%f || exit 1"
+      - "-c"
+      - "max_wal_senders=3"
+      - "-c"
+      - "wal_keep_size=1GB"
+      - "-c"
+      - "max_wal_size=1GB"
+      - "-c"
+      - "log_archive_command=on"
+      - "-c"
+      - "log_checkpoints=on"
     networks:
       - internal
     restart: unless-stopped
@@ -45,6 +67,42 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # PostgreSQL Backup Service
+  # Handles daily base backups and WAL archive synchronization to remote server
+  postgres-backup:
+    image: postgres:15-alpine
+    container_name: postgres-backup
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-rc_survey_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-rc_survey_db}
+      # Backup configuration
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-10}
+      - BACKUP_SCHEDULE=${BACKUP_SCHEDULE:-0 2 * * *}  # Daily at 2 AM (cron format)
+      - WAL_SYNC_INTERVAL=${WAL_SYNC_INTERVAL:-60}  # Sync WAL every 60 seconds
+      # Remote backup configuration
+      - REMOTE_HOST=${REMOTE_BACKUP_HOST:-192.168.1.246}
+      - REMOTE_USER=${REMOTE_BACKUP_USER:-rcadmin}
+      - REMOTE_BACKUP_PATH=${REMOTE_BACKUP_PATH:-/home/rcadmin/postgres-backups}
+      - REMOTE_SSH_KEY_PATH=${REMOTE_SSH_KEY_PATH:-/backup-keys/id_rsa}
+    volumes:
+      - postgres-wal-archive:/var/lib/postgresql/wal-archive
+      - postgres-backups:/var/lib/postgresql/backups
+      # Mount backup scripts
+      - ./backup-scripts:/backup-scripts:ro
+      # SSH key for remote access (mount your SSH key here)
+      # Create this directory and place your SSH private key: infra/docker/backup-keys/id_rsa
+      - ./backup-keys:/backup-keys:ro
+    networks:
+      - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    entrypoint: ["/backup-scripts/entrypoint.sh"]
+
 networks:
   internal:
     driver: bridge
@@ -53,3 +111,6 @@ networks:
 volumes:
   postgres-data:
   pgadmin-data:
+  # Backup infrastructure volumes
+  postgres-wal-archive:  # WAL (Write-Ahead Log) archive for PITR
+  postgres-backups:      # Base backup storage

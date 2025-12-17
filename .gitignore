@@ -36,3 +36,7 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Backup SSH Keys
+infra/docker/backup-keys/id_rsa
+infra/docker/backup-keys/id_rsa.pub
