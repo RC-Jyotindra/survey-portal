@@ -8,13 +8,15 @@ set -e
 DB_USER="${POSTGRES_USER:-rc_survey_user}"
 
 # Wait for PostgreSQL to be ready
-until pg_isready -U postgres -d postgres; do
+# Use the database user as superuser (when POSTGRES_USER is set, that user is the superuser)
+until pg_isready -U "${DB_USER}" -d postgres; do
   echo "Waiting for PostgreSQL to be ready..."
   sleep 1
 done
 
 # Grant replication privilege to the user
-psql -v ON_ERROR_STOP=1 --username postgres <<-EOSQL
+# Connect as the superuser (which is DB_USER when POSTGRES_USER is set)
+psql -v ON_ERROR_STOP=1 --username "${DB_USER}" <<-EOSQL
     -- Grant replication privilege to the database user
     ALTER USER ${DB_USER} WITH REPLICATION;
     

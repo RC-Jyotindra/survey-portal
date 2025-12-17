@@ -19,6 +19,8 @@ services:
       - postgres-backups:/var/lib/postgresql/backups
       # Init script to grant replication privileges
       - ./init-scripts:/docker-entrypoint-initdb.d:ro
+      # Custom pg_hba.conf for replication connections
+      - ./pg_hba.conf:/tmp/pg_hba.conf:ro
     command:
       - "postgres"
       # WAL Archiving Configuration for PITR
