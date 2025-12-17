@@ -17,6 +17,8 @@ services:
       # WAL Archive and Backup volumes for PITR (Point-in-Time Recovery)
       - postgres-wal-archive:/var/lib/postgresql/wal-archive
       - postgres-backups:/var/lib/postgresql/backups
+      # Init script to grant replication privileges
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
     command:
       - "postgres"
       # WAL Archiving Configuration for PITR
