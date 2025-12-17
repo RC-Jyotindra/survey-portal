@@ -1,5 +1,11 @@
 # Backup System Quick Start Guide
 
+## 📌 Important: Remote Backup is Optional!
+
+**You can use local backups only** - remote synchronization is completely optional. The system works perfectly fine with just local backups stored on your server.
+
+See [BACKUP_LOCAL_ONLY.md](./BACKUP_LOCAL_ONLY.md) for local-only setup.
+
 ## 🚀 Quick Setup (5 minutes)
 
 ### Step 1: Generate SSH Key

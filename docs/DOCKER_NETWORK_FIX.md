@@ -20,9 +20,10 @@ cd infra/docker
 
 # Stop everything first
 docker-compose -f docker-compose.db.yml -f docker-compose.yml down
-
+docker-compose -f docker-compose.db.yml -f down
 # Start everything together
 docker-compose -f docker-compose.db.yml -f docker-compose.yml up -d
+docker-compose -f docker-compose.db.yml up -d
 ```
 
 This creates a **single shared network** that all services can use.
