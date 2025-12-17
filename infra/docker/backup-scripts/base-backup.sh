@@ -51,11 +51,14 @@ pg_basebackup \
   -X stream \
   -l "Base backup ${BACKUP_DATE}"
 
-if [ $? -eq 0 ]; then
+BACKUP_EXIT_CODE=$?
+
+if [ ${BACKUP_EXIT_CODE} -eq 0 ]; then
   echo "[$(date +'%Y-%m-%d %H:%M:%S')] Base backup created successfully: ${BACKUP_NAME}"
   
   # Create backup metadata file
-  cat > "${BACKUP_PATH}/backup_info.txt" <<EOF
+  # Note: pg_basebackup with -Ft creates tar files in the directory, so metadata goes in parent
+  cat > "${BACKUP_DIR}/${BACKUP_NAME}_info.txt" <<EOF
 Backup Date: ${BACKUP_DATE}
 PostgreSQL Host: ${POSTGRES_HOST}
 PostgreSQL Port: ${POSTGRES_PORT}
