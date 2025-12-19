@@ -82,7 +82,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-rc_survey_db}
       # Backup configuration
       - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-10}
-      - BACKUP_SCHEDULE=${BACKUP_SCHEDULE:-0 2 * * *}  # Daily at 2 AM (cron format)
+      - BACKUP_SCHEDULE=${BACKUP_SCHEDULE:-15 12 * * *}  # Daily at 12:15 PM (cron format)
       - WAL_SYNC_INTERVAL=${WAL_SYNC_INTERVAL:-60}  # Sync WAL every 60 seconds
       # Remote backup configuration
       - REMOTE_HOST=${REMOTE_BACKUP_HOST:-192.168.1.246}
