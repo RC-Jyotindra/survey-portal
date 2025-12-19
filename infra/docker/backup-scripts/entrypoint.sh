@@ -26,7 +26,15 @@ apk add --no-cache dcron openssh-client sshpass >/dev/null 2>&1 || {
 echo "Setting execute permissions on backup scripts..."
 chmod +x /backup-scripts/*.sh
 chmod +x /backup-scripts/entrypoint.sh
+
+# Verify permissions
+echo "Verifying script permissions:"
 ls -la /backup-scripts/*.sh
+
+# Also ensure the log directory exists and is writable
+mkdir -p /var/log
+touch /var/log/backup.log
+chmod 666 /var/log/backup.log
 
 # Setup SSH for remote access
 if [ -f "${REMOTE_SSH_KEY_PATH:-/backup-keys/id_rsa}" ]; then
